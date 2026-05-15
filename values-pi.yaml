@@ -3,7 +3,7 @@
 
 github:
   scope: org
-  target: ramcorp
+  target: ramcorp.io
 
 runner:
   name: pi-01
