@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pi-runner.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pi-runner.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pi-runner.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pi-runner.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "pi-runner.serviceAccountName" . }}
+      # Docker-in-Docker requires privileged. The runner image starts its own
+      # dockerd so the Actions Docker build steps work without a host socket.
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: runner
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            privileged: true
+          env:
+            - name: ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pi-runner.fullname" . }}
+                  key: github-token
+            - name: RUNNER_SCOPE
+              value: {{ .Values.github.scope | quote }}
+            {{- if eq .Values.github.scope "org" }}
+            - name: ORG_NAME
+              value: {{ .Values.github.target | quote }}
+            {{- else }}
+            - name: REPO_URL
+              value: {{ .Values.github.target | quote }}
+            {{- end }}
+            - name: RUNNER_NAME_PREFIX
+              value: {{ .Values.runner.name | quote }}
+            - name: LABELS
+              value: {{ .Values.runner.labels | quote }}
+            - name: RUNNER_WORKDIR
+              value: {{ .Values.runner.workdir | quote }}
+            - name: EPHEMERAL
+              value: {{ .Values.runner.ephemeral | quote }}
+            # Enable the built-in Docker daemon so Docker build steps work.
+            - name: DOCKER_ENABLED
+              value: "true"
+            - name: MTU_VALUE
+              value: "1450"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: work
+              mountPath: {{ .Values.runner.workdir }}
+            - name: docker-storage
+              mountPath: /var/lib/docker
+      volumes:
+        # Ephemeral work dir — cleared between runs (runner restarts after each job).
+        - name: work
+          emptyDir: {}
+        # Separate volume for Docker layer cache. Avoids filling the overlay FS
+        # and persists the cache across runner restarts for faster builds.
+        - name: docker-storage
+          emptyDir: {}

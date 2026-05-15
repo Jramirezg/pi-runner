@@ -1,0 +1,11 @@
+# Pi cluster overrides — set github.token at deploy time:
+#   make install GITHUB_PAT=<your-pat>
+
+github:
+  scope: org
+  # Replace with your GitHub org name once created.
+  # If using repo scope instead, set to the full repo URL.
+  target: ""
+
+runner:
+  name: pi-01

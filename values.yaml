@@ -1,0 +1,42 @@
+# pi-runner default values
+#
+# GitHub scope options:
+#   org  — registers at organization level; all repos in the org share this runner.
+#          Requires a GitHub Organization and a PAT with admin:org scope.
+#   repo — registers against a single repo.
+#          Requires a PAT with repo scope.
+#          Set github.target to the full repo URL, e.g. https://github.com/acme/my-repo
+#
+# To use in workflows, set:  runs-on: [self-hosted, pi]
+
+replicaCount: 2
+
+image:
+  repository: myoung34/github-runner
+  tag: latest
+  pullPolicy: Always
+
+github:
+  scope: org       # "org" or "repo"
+  target: ""       # org name (scope=org) or full repo URL (scope=repo)
+  token: ""        # set via --set github.token=$PAT or an external secret
+
+runner:
+  name: pi
+  # Labels applied to every runner pod. Workflows target with: runs-on: [self-hosted, pi]
+  labels: self-hosted,pi,linux,ARM64
+  workdir: /tmp/runner/work
+  # ephemeral=true: runner exits after one job (clean slate). Good for security; k8s restarts the pod.
+  ephemeral: "true"
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+serviceAccount:
+  create: true
+  name: ""
