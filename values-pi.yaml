@@ -3,9 +3,7 @@
 
 github:
   scope: org
-  # Replace with your GitHub org name once created.
-  # If using repo scope instead, set to the full repo URL.
-  target: ""
+  target: ramcorp
 
 runner:
   name: pi-01
