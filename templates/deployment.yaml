@@ -50,8 +50,9 @@ spec:
               value: {{ .Values.runner.labels | quote }}
             - name: RUNNER_WORKDIR
               value: {{ .Values.runner.workdir | quote }}
-            - name: EPHEMERAL
-              value: {{ .Values.runner.ephemeral | quote }}
+            # EPHEMERAL is intentionally omitted: the entrypoint checks [ -n "${EPHEMERAL}" ]
+            # so any non-empty value (including "false") enables ephemeral mode.
+            # Not setting it at all means the runner stays alive between jobs.
             # Route Docker CLI to the DinD sidecar daemon.
             - name: DOCKER_HOST
               value: tcp://localhost:2375
