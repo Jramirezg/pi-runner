@@ -50,6 +50,9 @@ spec:
             # Route Docker CLI to the DinD sidecar daemon.
             - name: DOCKER_HOST
               value: tcp://localhost:2375
+            # Use Node.js 24 for all Actions (avoids Node.js 20 deprecation warnings).
+            - name: FORCE_JAVASCRIPT_ACTIONS_TO_NODE24
+              value: "true"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
