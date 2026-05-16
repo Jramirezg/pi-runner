@@ -16,8 +16,6 @@ spec:
         {{- include "pi-runner.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "pi-runner.serviceAccountName" . }}
-      # Docker-in-Docker requires privileged. The runner image starts its own
-      # dockerd so the Actions Docker build steps work without a host socket.
       securityContext:
         fsGroup: 1000
       containers:
@@ -49,23 +47,39 @@ spec:
               value: {{ .Values.runner.workdir | quote }}
             - name: EPHEMERAL
               value: {{ .Values.runner.ephemeral | quote }}
-            # Enable the built-in Docker daemon so Docker build steps work.
-            - name: DOCKER_ENABLED
-              value: "true"
-            - name: MTU_VALUE
-              value: "1450"
+            # Route Docker CLI to the DinD sidecar daemon.
+            - name: DOCKER_HOST
+              value: tcp://localhost:2375
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: work
+              mountPath: {{ .Values.runner.workdir }}
+
+        # DinD sidecar — runs dockerd so Actions Docker build steps work.
+        # TLS disabled (DOCKER_TLS_CERTDIR="") for simple pod-local connectivity.
+        - name: dind
+          image: docker:27-dind
+          securityContext:
+            privileged: true
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          args: ["--mtu=1450"]
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
           volumeMounts:
             - name: work
               mountPath: {{ .Values.runner.workdir }}
             - name: docker-storage
               mountPath: /var/lib/docker
       volumes:
-        # Ephemeral work dir — cleared between runs (runner restarts after each job).
         - name: work
           emptyDir: {}
-        # Separate volume for Docker layer cache. Avoids filling the overlay FS
-        # and persists the cache across runner restarts for faster builds.
         - name: docker-storage
           emptyDir: {}
