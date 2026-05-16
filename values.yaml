@@ -26,8 +26,10 @@ runner:
   # Labels applied to every runner pod. Workflows target with: runs-on: [self-hosted, pi]
   labels: self-hosted,pi,linux,ARM64
   workdir: /tmp/runner/work
-  # ephemeral=true: runner exits after one job (clean slate). Good for security; k8s restarts the pod.
-  ephemeral: "true"
+  # ephemeral=false: runner stays alive between jobs. Required for Deployment-based setup —
+  # ephemeral runners exit after each job and cause CrashLoopBackOff in k8s Deployments.
+  # (Ephemeral runners need actions-runner-controller Jobs, not Deployments.)
+  ephemeral: "false"
 
 resources:
   requests:
